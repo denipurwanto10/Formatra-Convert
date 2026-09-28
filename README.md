@@ -5,7 +5,7 @@ lindungi, dan edit PDF, Word, Excel, PowerPoint, dan gambar, semuanya berjalan
 **di browser** (client-side), dibangun dengan React + Vite + Tailwind CSS.
 
 ## Menjalankan proyek
-
+ 
 ```bash
 npm install
 npm run dev       # mode pengembangan, http://localhost:5173
