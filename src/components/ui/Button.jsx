@@ -3,19 +3,19 @@ import { Loader2 } from "lucide-react";
 
 const VARIANTS = {
   primary:
-    "bg-accent text-accent-ink shadow-sm hover:bg-[var(--accent-strong)] hover:shadow-accent border border-transparent disabled:opacity-50 disabled:hover:shadow-none",
+    "bg-accent text-accent-ink border border-transparent hover:bg-[var(--accent-strong)] disabled:opacity-45",
   secondary:
-    "bg-transparent text-ink border-hair hover:bg-surface-2 hover:border-accent/40 disabled:opacity-50",
+    "bg-surface text-ink border border-[var(--border)] hover:border-[var(--border-strong)] hover:bg-surface-2 disabled:opacity-45",
   ghost:
-    "bg-transparent text-muted hover:text-ink hover:bg-surface-2 border border-transparent disabled:opacity-50",
+    "bg-transparent text-muted hover:text-ink hover:bg-surface-2 border border-transparent disabled:opacity-45",
   danger:
-    "bg-transparent text-[var(--danger)] border border-[var(--danger)]/40 hover:bg-[var(--danger-bg)] hover:border-[var(--danger)]/70 disabled:opacity-50",
+    "bg-transparent text-[var(--danger)] border border-[color-mix(in_srgb,var(--danger)_35%,transparent)] hover:bg-[var(--danger-bg)] hover:border-[color-mix(in_srgb,var(--danger)_60%,transparent)] disabled:opacity-45",
 };
 
 const SIZES = {
-  sm: "h-8.5 px-3.5 text-[13px] gap-1.5 rounded-lg",
-  md: "h-10 px-4 text-sm gap-2 rounded-xl",
-  lg: "h-11.5 px-5.5 text-sm gap-2 rounded-xl",
+  sm: "h-9 px-3.5 text-[13px] gap-1.5 rounded-lg",
+  md: "h-10 px-4 text-[14px] gap-2 rounded-[10px]",
+  lg: "h-11 px-5 text-[14px] gap-2 rounded-[10px]",
 };
 
 export default function Button({
@@ -31,7 +31,9 @@ export default function Button({
   return (
     <Component
       className={clsx(
-        "tap-target focus-ring inline-flex items-center justify-center font-medium transition-all duration-150 select-none whitespace-nowrap active:scale-[0.97] disabled:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "tap-target focus-ring inline-flex select-none items-center justify-center whitespace-nowrap font-medium tracking-[-0.005em]",
+        "transition-[background-color,border-color,color,transform,opacity] duration-200 ease-[var(--ease-out)]",
+        "active:scale-[0.975] disabled:cursor-not-allowed disabled:active:scale-100",
         VARIANTS[variant],
         SIZES[size],
         className

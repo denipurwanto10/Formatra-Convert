@@ -1,25 +1,31 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, FileQuestion } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import Logo from "../components/ui/Logo";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-base px-5 text-ink">
-      <div className="w-full max-w-md text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border-hair bg-surface text-accent shadow-soft">
-          <FileQuestion className="size-6" />
+    <div className="page-enter flex min-h-dvh flex-col bg-base px-5 text-ink">
+      <header className="mx-auto flex h-16 w-full max-w-[1160px] items-center">
+        <Link to="/" aria-label="Formatra — beranda"><Logo /></Link>
+      </header>
+      <div className="flex flex-1 items-center justify-center pb-24">
+        <div className="w-full max-w-md">
+          <p className="animate-fade-up font-mono text-[12px] tracking-[0.12em] text-muted">404</p>
+          <h1 className="animate-fade-up mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.04em]" style={{ animationDelay: "60ms" }}>
+            Halaman tidak ditemukan
+          </h1>
+          <p className="animate-fade-up mt-3 max-w-sm text-[15px] leading-relaxed text-muted" style={{ animationDelay: "120ms" }}>
+            Tautan yang kamu buka mungkin sudah berubah atau tidak tersedia lagi.
+          </p>
+          <Link
+            to="/app"
+            style={{ animationDelay: "180ms" }}
+            className="animate-fade-up group mt-7 inline-flex h-12 items-center gap-2 rounded-[11px] bg-accent px-5 text-[14.5px] font-medium text-accent-ink transition-[background-color,transform] duration-200 hover:bg-[var(--accent-strong)] active:scale-[0.98]"
+          >
+            <ArrowLeft className="size-4 transition-transform duration-300 ease-[var(--ease-out)] group-hover:-translate-x-0.5" />
+            Kembali ke aplikasi
+          </Link>
         </div>
-        <p className="mt-5 font-mono text-xs font-medium uppercase tracking-[0.16em] text-muted">404</p>
-        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">Halaman tidak ditemukan</h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">
-          Link yang kamu buka mungkin sudah berubah atau tidak tersedia.
-        </p>
-        <Link
-          to="/app"
-          className="mt-6 inline-flex h-11 items-center gap-2 rounded-md bg-accent px-5 text-sm font-semibold text-accent-ink shadow-accent transition-colors hover:bg-[var(--accent-strong)]"
-        >
-          <ArrowLeft className="size-4" />
-          Kembali ke aplikasi
-        </Link>
       </div>
     </div>
   );

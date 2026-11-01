@@ -1,13 +1,16 @@
 import { lazy, Suspense } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { TOOLS } from "../lib/toolsMeta";
-import Spinner from "../components/ui/Spinner";
+import Skeleton from "../components/ui/Skeleton";
 
 const COMPONENTS = {
   "word-to-pdf": lazy(() => import("../features/toolComponents/WordToPdfTool")),
   "pdf-to-word": lazy(() => import("../features/toolComponents/PdfToWordTool")),
   "excel-to-pdf": lazy(() => import("../features/toolComponents/ExcelToPdfTool")),
+  "pdf-to-excel": lazy(() => import("../features/toolComponents/PdfToExcelTool")),
   "ppt-to-pdf": lazy(() => import("../features/toolComponents/PptToPdfTool")),
+  "pdf-to-powerpoint": lazy(() => import("../features/toolComponents/PdfToPowerpointTool")),
+  "pdf-to-pdfa": lazy(() => import("../features/toolComponents/PdfToPdfATool")),
   "image-to-pdf": lazy(() => import("../features/toolComponents/ImagesToPdfTool")),
   "pdf-to-image": lazy(() => import("../features/toolComponents/PdfToImagesTool")),
   "convert-image": lazy(() => import("../features/toolComponents/ImageConvertTool")),
@@ -44,10 +47,19 @@ const COMPONENTS = {
   "compress-audio": lazy(() => import("../features/toolComponents/CompressAudioTool")),
 };
 
+/** Layout-matched placeholder while a tool's code chunk loads. */
 function PageFallback() {
   return (
-    <div className="flex h-64 items-center justify-center">
-      <Spinner />
+    <div className="mx-auto max-w-3xl animate-fade-in px-5 py-8 lg:px-8" aria-busy="true" aria-label="Memuat alat">
+      <Skeleton className="mb-6 h-3 w-40" />
+      <div className="mb-9 flex items-start gap-4">
+        <Skeleton className="size-14 shrink-0 rounded-[13px]" />
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-7 w-2/3 max-w-xs" />
+          <Skeleton className="h-3.5 w-full max-w-md" />
+        </div>
+      </div>
+      <Skeleton className="h-[300px] w-full rounded-[18px]" />
     </div>
   );
 }
@@ -63,7 +75,9 @@ export default function ToolPage() {
 
   return (
     <Suspense fallback={<PageFallback />}>
-      <Component />
+      <div className="page-enter h-full">
+        <Component />
+      </div>
     </Suspense>
   );
 }

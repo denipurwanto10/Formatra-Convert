@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import {
   MousePointer2,
   Type,
-  Edit3,
   Image as ImageIcon,
   PenLine,
   Pen,
@@ -39,10 +38,9 @@ import { useCanvasHandle } from "../CanvasContext";
 // handler at the bottom of this file.
 const SELECT_TOOLS = [
   { id: "select", icon: MousePointer2, label: "Pilih & Pindah", key: "V" },
-  { id: "editText", icon: Edit3, label: "Edit Teks Asli (klik teks di PDF)", key: "E" },
+  { id: "text", icon: Type, label: "Teks — klik teks PDF untuk mengedit, klik area kosong untuk teks baru", key: "T" },
 ];
 const DRAW_TOOLS = [
-  { id: "text", icon: Type, label: "Tambah Teks", key: "T" },
   { id: "draw", icon: Pencil, label: "Gambar Bebas", key: "P" },
   { id: "highlight", icon: Highlighter, label: "Sorot (Highlight)", key: "H" },
   { id: "underline", icon: Underline, label: "Garis Bawah", key: "U" },

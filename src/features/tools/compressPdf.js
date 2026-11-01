@@ -53,9 +53,60 @@ const RASTERIZE_PRESETS = {
 
 /**
  * @param {File} file
- * @param {"lossless"|"balanced"|"strong"} level
+ * @param {"lossless"|"balanced"|"strong"|object} options compression level string or options object
+ * @param {string} [options.level="lossless"] compression level
+ * @param {number|null} [options.targetSizeMB] target output size in MB; if set, will iteratively compress until under this size
  */
-export async function compressPdf(file, level = "lossless", onProgress) {
+export async function compressPdf(file, options = "lossless", onProgress) {
+  // Handle backward compatibility with old string parameter
+  const opts = typeof options === 'string' ? { level: options } : options;
+  const { level = "lossless", targetSizeMB = null } = opts;
+
+  // If target size is specified, use iterative compression
+  if (targetSizeMB && targetSizeMB > 0) {
+    const targetBytes = targetSizeMB * 1024 * 1024;
+    
+    // Try different compression levels based on initial level
+    const levelsToTry = level === "lossless" 
+      ? ["lossless", "balanced", "strong"] 
+      : level === "balanced" 
+        ? ["balanced", "strong"] 
+        : ["strong"];
+    
+    let result = null;
+    let bestResult = null;
+    
+    for (let i = 0; i < levelsToTry.length; i++) {
+      const currentLevel = levelsToTry[i];
+      onProgress?.(Math.min(100, 10 + Math.floor((i / levelsToTry.length) * 80)));
+      
+      if (currentLevel === "lossless") {
+        result = await compressLossless(file, onProgress);
+      } else {
+        result = await compressRasterize(file, RASTERIZE_PRESETS[currentLevel], onProgress);
+      }
+      
+      if (result.size <= targetBytes) {
+        // We found a result under target size, return it
+        onProgress?.(100);
+        return result;
+      }
+      
+      // Keep track of the smallest result so far (even if over target)
+      if (!bestResult || result.size < bestResult.size) {
+        bestResult = result;
+      }
+    }
+    
+    // If we couldn't reach target size, return the best result we got
+    onProgress?.(100);
+    if (bestResult && bestResult.size > targetBytes) {
+      console.warn(`Tidak bisa kompres ke bawah ${targetSizeMB}MB. Hasil terbaik: ${(bestResult.size / (1024 * 1024)).toFixed(2)}MB`);
+    }
+    return bestResult || result;
+  }
+  
+  // Standard compression without target size
   if (level === "balanced" || level === "strong") {
     return compressRasterize(file, RASTERIZE_PRESETS[level], onProgress);
   }

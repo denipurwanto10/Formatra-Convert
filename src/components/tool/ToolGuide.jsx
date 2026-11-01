@@ -1,4 +1,4 @@
-import { Info } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 const GUIDES = {
   "merge-pdf": ["Pilih minimal 2 PDF.", "Seret file untuk menentukan urutan halaman.", "Klik Gabung lalu unduh hasilnya."],
@@ -15,16 +15,15 @@ export default function ToolGuide({ toolId }) {
   if (!steps) return null;
 
   return (
-    <details className="group mb-4 rounded-2xl border-hair bg-surface transition-colors open:bg-surface-2/30">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 px-4 py-3 text-[12.5px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
-        <Info className="size-4 text-accent" />
+    <details className="group mb-4 overflow-hidden rounded-[14px] border-hair bg-surface">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-surface-2/60 [&::-webkit-details-marker]:hidden">
         Cara kerja
-        <span className="ml-auto text-[11px] font-medium text-muted transition-transform group-open:rotate-180">⌄</span>
+        <ChevronDown className="ml-auto size-4 text-muted transition-transform duration-300 ease-[var(--ease-out)] group-open:rotate-180" />
       </summary>
-      <ol className="grid gap-2 border-t border-[var(--border)] px-4 py-3 sm:grid-cols-3">
+      <ol className="animate-fade-in grid gap-3 border-t border-hair px-4 py-4 sm:grid-cols-3">
         {steps.map((step, index) => (
-          <li key={step} className="flex gap-2 text-[11.5px] leading-relaxed text-muted">
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-accent/10 font-mono text-[10px] font-semibold text-accent">{index + 1}</span>
+          <li key={step} className="flex gap-2.5 text-[12.5px] leading-relaxed text-muted">
+            <span className="mt-px font-mono text-[11px] text-ink">{String(index + 1).padStart(2, "0")}</span>
             {step}
           </li>
         ))}

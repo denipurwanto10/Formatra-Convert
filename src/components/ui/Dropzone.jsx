@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { UploadCloud, Loader2, FolderOpen, ShieldCheck } from "lucide-react";
+import { UploadCloud, Loader2, ShieldCheck } from "lucide-react";
 import clsx from "clsx";
 import { validateFiles } from "../../utils/fileValidation";
 import { useToast } from "../../context/ToastContext";
@@ -23,6 +23,7 @@ export default function Dropzone({
   const [isDragging, setIsDragging] = useState(false);
   const [validating, setValidating] = useState(false);
   const inputRef = useRef(null);
+  const dragDepth = useRef(0);
   const toast = useToast();
   const formats = useMemo(() => formatAccept(accept), [accept]);
 
@@ -43,10 +44,11 @@ export default function Dropzone({
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}
-      onDragEnd={() => setIsDragging(false)}
+      onDragEnter={(e) => { e.preventDefault(); dragDepth.current += 1; setIsDragging(true); }}
+      onDragOver={(e) => { e.preventDefault(); }}
+      onDragLeave={() => { dragDepth.current = Math.max(0, dragDepth.current - 1); if (dragDepth.current === 0) setIsDragging(false); }}
+      onDrop={(e) => { e.preventDefault(); dragDepth.current = 0; setIsDragging(false); handleFiles(e.dataTransfer.files); }}
+      onDragEnd={() => { dragDepth.current = 0; setIsDragging(false); }}
       onClick={openPicker}
       role="button"
       tabIndex={0}
@@ -54,33 +56,51 @@ export default function Dropzone({
       aria-busy={validating}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } }}
       className={clsx(
-        "tool-workspace group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[22px] border-2 border-dashed text-center transition-all duration-200",
-        compact ? "px-4 py-7" : "min-h-[320px] px-6 py-12 sm:min-h-[350px]",
-        isDragging ? "scale-[1.005] border-accent bg-accent/8 shadow-accent" : "border-[var(--border)] bg-surface hover:border-accent/45 hover:bg-surface-2/40 hover:shadow-soft"
+        "tool-workspace group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[18px] border border-dashed text-center",
+        "transition-[border-color,background-color,transform,box-shadow] duration-300 ease-[var(--ease-out)]",
+        compact ? "px-4 py-7" : "min-h-[280px] px-5 py-10 sm:min-h-[340px] sm:px-6 sm:py-14",
+        isDragging
+          ? "scale-[1.006] border-[var(--ink)] bg-surface-2"
+          : "border-[var(--border-strong)] bg-surface hover:border-[var(--ink)]/60 hover:bg-[color-mix(in_srgb,var(--surface-2)_45%,var(--surface))]"
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-grain opacity-40" aria-hidden="true" />
       <div className="relative z-10 flex max-w-md flex-col items-center">
-        <div className={clsx("mb-4 flex size-16 items-center justify-center rounded-[20px] border border-accent/15 bg-accent/10 text-accent transition-transform duration-200", isDragging && "scale-110") }>
-          {validating ? <Loader2 className="size-7 animate-spin" /> : <UploadCloud className="size-7" />}
+        <div
+          className={clsx(
+            "mb-5 flex size-14 items-center justify-center rounded-2xl border-hair bg-surface-2 text-ink",
+            "transition-transform duration-500 ease-[var(--ease-out)] group-hover:-translate-y-0.5",
+            isDragging && "-translate-y-1 scale-105"
+          )}
+        >
+          {validating ? <Loader2 className="size-6 animate-spin" /> : <UploadCloud className="size-6" strokeWidth={1.6} />}
         </div>
-        <p className="text-[15px] font-semibold text-ink sm:text-base">
-          {validating ? "Memeriksa file..." : isDragging ? "Lepaskan file di sini" : label}
+        <p className="text-[16px] font-medium tracking-[-0.015em] text-ink sm:text-[17px]">
+          {validating ? "Memeriksa file…" : isDragging ? "Lepaskan untuk mulai" : label}
         </p>
-        {!validating && <p className="mt-2 text-[13px] leading-relaxed text-muted">atau pilih dari perangkatmu. File tetap di browser dan tidak diunggah.</p>}
         {!validating && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); openPicker(); }} className="mt-4 inline-flex min-h-11 h-11 items-center gap-2 rounded-md bg-accent px-4 text-[13px] font-semibold text-accent-ink shadow-accent transition-all hover:bg-[var(--accent-strong)] active:scale-[0.98]">
-            <FolderOpen className="size-4" /> Pilih file
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted">
+            atau pilih dari perangkatmu — file tidak diunggah.
+          </p>
+        )}
+        {!validating && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); openPicker(); }}
+            className="tap-target focus-ring mt-6 inline-flex h-11 items-center gap-2 rounded-[10px] bg-accent px-5 text-[14px] font-medium text-accent-ink transition-[background-color,transform] duration-200 hover:bg-[var(--accent-strong)] active:scale-[0.97]"
+          >
+            Pilih file
           </button>
         )}
         {!validating && (
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-[11px] text-muted">
-            {formats && <span className="rounded-full bg-surface-2 px-2.5 py-1 font-mono">{formats}</span>}
-            {maxSizeMB && <span className="rounded-full bg-surface-2 px-2.5 py-1">Maks. {maxSizeMB} MB</span>}
-            <span className="inline-flex items-center gap-1 rounded-full bg-success-bg px-2.5 py-1 text-[var(--success)]"><ShieldCheck className="size-3" /> Lokal</span>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[11.5px] text-muted">
+            {formats && <span className="font-mono">{formats}</span>}
+            {formats && maxSizeMB && <span aria-hidden="true" className="size-[3px] rounded-full bg-[var(--border-strong)]" />}
+            {maxSizeMB && <span>Maks. {maxSizeMB} MB</span>}
+            <span aria-hidden="true" className="size-[3px] rounded-full bg-[var(--border-strong)]" />
+            <span className="inline-flex items-center gap-1 text-[var(--success)]"><ShieldCheck className="size-3" /> Lokal</span>
           </div>
         )}
-        {hint && !validating && <p className="mt-3 max-w-sm text-[11.5px] text-muted">{hint}</p>}
+        {hint && !validating && <p className="mt-3 max-w-sm text-[12px] text-muted">{hint}</p>}
       </div>
       <input ref={inputRef} type="file" accept={accept} multiple={multiple} className="hidden" onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }} />
     </div>

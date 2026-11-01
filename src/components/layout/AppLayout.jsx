@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import clsx from "clsx";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { TOOLS } from "../../lib/toolsMeta";
+import { usePresence } from "../../hooks/usePresence";
 
 function pageTitle(pathname) {
   if (pathname === "/app") return "Dashboard";
@@ -11,26 +11,12 @@ function pageTitle(pathname) {
   return match ? match.name : "Formatra";
 }
 
-const DRAWER_ANIM_MS = 220;
 const SIDEBAR_COLLAPSE_KEY = "formatra-sidebar-collapsed";
 
-/** Mobile nav drawer: slides in from the left with a fading backdrop, and
- * — unlike a plain conditional render — plays the same animation in reverse
- * on close instead of just vanishing. */
+/** Mobile nav drawer: slides in with a fading backdrop and plays the same
+ * motion in reverse on close. */
 function MobileDrawer({ open, onClose, children }) {
-  const [mounted, setMounted] = useState(open);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      const raf = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(raf);
-    }
-    setVisible(false);
-    const timeout = setTimeout(() => setMounted(false), DRAWER_ANIM_MS);
-    return () => clearTimeout(timeout);
-  }, [open]);
+  const { mounted, visible } = usePresence(open, 360);
 
   useEffect(() => {
     if (!mounted) return undefined;
@@ -53,21 +39,14 @@ function MobileDrawer({ open, onClose, children }) {
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Navigasi">
       <div
-        className={clsx(
-          "absolute inset-0 bg-black/40 transition-opacity duration-200 ease-out",
-          visible ? "opacity-100" : "opacity-0"
-        )}
+        data-open={visible}
+        className="fade-presence absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_42%,transparent)] backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div
-        className={clsx(
-          "relative shadow-soft-lg transition-transform duration-200 ease-out will-change-transform",
-          visible ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
+      <div data-open={visible} className="drawer-presence shadow-soft-lg relative h-full max-w-[86vw]">
         {children}
       </div>
     </div>
@@ -85,14 +64,10 @@ export default function AppLayout() {
   });
   const location = useLocation();
 
-  // Close the drawer automatically on every navigation, in case a click
-  // lands somewhere inside Sidebar that doesn't already call onNavigate.
   useEffect(() => {
     setDrawerOpen(false);
-    document.title = pageTitle(location.pathname) === "Dashboard"
-      ? "Formatra — Dashboard"
-      : `Formatra — ${pageTitle(location.pathname)}`;
-    document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "auto" });
+    const title = pageTitle(location.pathname);
+    document.title = `Formatra — ${title}`;
   }, [location.pathname]);
 
   const toggleCollapsed = () => {
@@ -108,14 +83,12 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-base text-ink">
+    <div className="flex h-dvh w-full bg-base text-ink">
       <a href="#main-content" className="skip-link">Lewati ke konten utama</a>
-      {/* Desktop sidebar — collapsible, state persisted across visits */}
       <div className="hidden lg:block">
         <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
       </div>
 
-      {/* Mobile drawer */}
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Sidebar onNavigate={() => setDrawerOpen(false)} />
       </MobileDrawer>
@@ -126,7 +99,13 @@ export default function AppLayout() {
           menuOpen={drawerOpen}
           onMenuClick={() => setDrawerOpen((v) => !v)}
         />
-        <main id="main-content" tabIndex="-1" className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto page-enter">
+        {/* Keyed by route: a fresh scroll position and a fresh enter animation per page. */}
+        <main
+          key={location.pathname}
+          id="main-content"
+          tabIndex="-1"
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto outline-none [scrollbar-gutter:stable]"
+        >
           <Outlet />
         </main>
       </div>

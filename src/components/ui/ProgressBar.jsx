@@ -7,7 +7,7 @@ export default function ProgressBar({ value = 0, label, status, indeterminate = 
   return (
     <div className="w-full">
       {(label || status) && (
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+        <div className="mb-2 flex items-center justify-between gap-2 text-[12.5px]">
           <span className="flex items-center gap-1.5 text-muted">
             {done && <Check className="size-3.5 text-[var(--success)]" />}
             {status || label}
@@ -17,23 +17,13 @@ export default function ProgressBar({ value = 0, label, status, indeterminate = 
           )}
         </div>
       )}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={indeterminate ? undefined : Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
         {indeterminate ? (
-          <div className="h-full w-1/3 animate-[indeterminate_1.1s_ease-in-out_infinite] rounded-full bg-accent" />
+          <div className="h-full w-1/3 rounded-full bg-accent" style={{ animation: "indeterminate 1.4s var(--ease-in-out) infinite" }} />
         ) : (
-          <div
-            className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
-            style={{ width: `${pct}%` }}
-          />
+          <div className="h-full rounded-full bg-accent transition-[width] duration-500 ease-[var(--ease-out)]" style={{ width: `${pct}%` }} />
         )}
       </div>
-      <style>{`
-        @keyframes indeterminate {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(150%); }
-          100% { transform: translateX(150%); }
-        }
-      `}</style>
     </div>
   );
 }

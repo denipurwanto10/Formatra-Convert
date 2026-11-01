@@ -20,8 +20,16 @@ export default function CompressTool() {
   const tool = TOOLS["compress-pdf"];
   const [file, setFile] = useState(null);
   const [level, setLevel] = useState("lossless");
+  const [targetSize, setTargetSize] = useState("");
+  const [useTargetSize, setUseTargetSize] = useState(false);
+  
+  const options = {
+    level,
+    targetSizeMB: useTargetSize && targetSize ? parseFloat(targetSize) : null
+  };
+  
   const { status, progress, result, error, run, reset, cancel } = useToolProcess(tool);
-  const batchProcess = useBatchProcess((f, onProgress) => compressPdf(f, level, onProgress), tool);
+  const batchProcess = useBatchProcess((f, onProgress) => compressPdf(f, options, onProgress), tool);
   const toast = useToast();
 
   const outputName = (f) => withSuffix(f.name, "terkompresi");
@@ -34,15 +42,15 @@ export default function CompressTool() {
 
   const handleCompress = async () => {
     try {
-      const blob = await run((onProgress) => compressPdf(file, level, onProgress), file.name);
+      const blob = await run((onProgress) => compressPdf(file, options, onProgress), file.name);
       const savedPct = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
       toast.success(
         "PDF berhasil dikompres",
         savedPct > 0 ? `Ukuran berkurang ${savedPct}%.` : "Ukuran file sudah cukup optimal."
       );
       return blob;
-    } catch {
-      toast.error("Gagal mengompres PDF");
+    } catch (e) {
+      toast.error("Gagal mengompres PDF", e?.message);
     }
   };
 
@@ -60,25 +68,55 @@ export default function CompressTool() {
     return (
       <div className="mx-auto max-w-3xl px-5 py-8 lg:px-8">
         <ToolPageHeader tool={tool} />
-        <div className="mb-4 flex flex-col gap-2">
-          <LevelOption
-            active={level === "lossless"}
-            onClick={() => setLevel("lossless")}
-            title="Rendah — tanpa kehilangan kualitas"
-            description="Teks tetap bisa dipilih & dicari. Penghematan ukuran biasanya kecil."
-          />
-          <LevelOption
-            active={level === "balanced"}
-            onClick={() => setLevel("balanced")}
-            title="Seimbang — kompresi & kualitas seimbang"
-            description="Merasterisasi halaman pada resolusi tinggi. Teks tidak lagi bisa diseleksi/dicari."
-          />
-          <LevelOption
-            active={level === "strong"}
-            onClick={() => setLevel("strong")}
-            title="Kuat — ukuran paling kecil"
-            description="Merasterisasi halaman pada resolusi lebih rendah. Teks tidak lagi bisa diseleksi/dicari."
-          />
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <input
+              type="checkbox"
+              id="pdf-use-target-size"
+              checked={useTargetSize}
+              onChange={(e) => setUseTargetSize(e.target.checked)}
+              className="size-4 accent-[var(--accent)]"
+            />
+            <label htmlFor="pdf-use-target-size" className="text-[13px] font-medium text-ink">
+              Kompres hingga di bawah ukuran tertentu
+            </label>
+          </div>
+          
+          {useTargetSize ? (
+            <div className="mb-3">
+              <label className="block text-[12.5px] font-medium text-muted mb-1">Target ukuran maksimum (MB)</label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={targetSize}
+                onChange={(e) => setTargetSize(e.target.value)}
+                placeholder="Misal: 1.5"
+                className="w-full rounded-md border-hair bg-base px-3 py-2 text-[13px] text-ink"
+              />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <LevelOption
+                active={level === "lossless"}
+                onClick={() => setLevel("lossless")}
+                title="Rendah — tanpa kehilangan kualitas"
+                description="Teks tetap bisa dipilih & dicari. Penghematan ukuran biasanya kecil."
+              />
+              <LevelOption
+                active={level === "balanced"}
+                onClick={() => setLevel("balanced")}
+                title="Seimbang — kompresi & kualitas seimbang"
+                description="Merasterisasi halaman pada resolusi tinggi. Teks tidak lagi bisa diseleksi/dicari."
+              />
+              <LevelOption
+                active={level === "strong"}
+                onClick={() => setLevel("strong")}
+                title="Kuat — ukuran paling kecil"
+                description="Merasterisasi halaman pada resolusi lebih rendah. Teks tidak lagi bisa diseleksi/dicari."
+              />
+            </div>
+          )}
         </div>
         <BatchResultList
           items={batchProcess.items}
@@ -129,27 +167,65 @@ export default function CompressTool() {
             <>
               {status !== "processing" && <FileListItem file={file} onRemove={handleReset} />}
 
-              <div className="flex flex-col gap-2">
-                <LevelOption
-                  active={level === "lossless"}
-                  onClick={() => setLevel("lossless")}
-                  title="Rendah — tanpa kehilangan kualitas"
-                  description="Merapikan struktur file. Teks tetap bisa dipilih & dicari. Penghematan ukuran biasanya kecil."
-                />
-                <LevelOption
-                  active={level === "balanced"}
-                  onClick={() => setLevel("balanced")}
-                  title="Seimbang — kompresi & kualitas seimbang"
-                  description="Mengubah setiap halaman menjadi gambar resolusi tinggi. Ukuran berkurang cukup besar, kualitas visual tetap tajam, tetapi teks tidak lagi bisa diseleksi/dicari."
-                />
-                <LevelOption
-                  active={level === "strong"}
-                  onClick={() => setLevel("strong")}
-                  title="Kuat — ukuran paling kecil"
-                  description="Mengubah setiap halaman menjadi gambar resolusi lebih rendah. Ukuran file berkurang paling signifikan, tetapi teks tidak lagi bisa diseleksi/dicari dan detail visual berkurang."
-                />
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="pdf-single-use-target-size"
+                    checked={useTargetSize}
+                    onChange={(e) => setUseTargetSize(e.target.checked)}
+                    className="size-4 accent-[var(--accent)]"
+                  />
+                  <label htmlFor="pdf-single-use-target-size" className="text-[13px] font-medium text-ink">
+                    Kompres hingga di bawah ukuran tertentu
+                  </label>
+                </div>
+
+                {useTargetSize ? (
+                  <div className="space-y-2">
+                    <label className="block text-[12.5px] font-medium text-muted">Target ukuran maksimum (MB)</label>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={targetSize}
+                      onChange={(e) => setTargetSize(e.target.value)}
+                      placeholder="Misal: 1.5"
+                      className="w-full rounded-md border-hair bg-base px-3 py-2 text-[13px] text-ink"
+                    />
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => setUseTargetSize(false)}
+                      className="w-full mt-2"
+                    >
+                      Gunakan mode manual
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <LevelOption
+                      active={level === "lossless"}
+                      onClick={() => setLevel("lossless")}
+                      title="Rendah — tanpa kehilangan kualitas"
+                      description="Merapikan struktur file. Teks tetap bisa dipilih & dicari. Penghematan ukuran biasanya kecil."
+                    />
+                    <LevelOption
+                      active={level === "balanced"}
+                      onClick={() => setLevel("balanced")}
+                      title="Seimbang — kompresi & kualitas seimbang"
+                      description="Mengubah setiap halaman menjadi gambar resolusi tinggi. Ukuran berkurang cukup besar, kualitas visual tetap tajam, tetapi teks tidak lagi bisa diseleksi/dicari."
+                    />
+                    <LevelOption
+                      active={level === "strong"}
+                      onClick={() => setLevel("strong")}
+                      title="Kuat — ukuran paling kecil"
+                      description="Mengubah setiap halaman menjadi gambar resolusi lebih rendah. Ukuran file berkurang paling signifikan, tetapi teks tidak lagi bisa diseleksi/dicari dan detail visual berkurang."
+                    />
+                  </div>
+                )}
               </div>
-              {level !== "lossless" && (
+              {!useTargetSize && level !== "lossless" && (
                 <p className="text-[12px] text-muted">
                   ⚠️ Mode ini merasterisasi halaman menjadi gambar — teks pada hasil akhir tidak lagi bisa diseleksi atau dicari.
                 </p>

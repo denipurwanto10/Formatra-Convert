@@ -36,6 +36,7 @@ import {
   AudioLines,
   Gauge,
   Stamp as StampIcon,
+  Landmark,
 } from "lucide-react";
 
 export const TOOL_GROUPS = [
@@ -43,13 +44,16 @@ export const TOOL_GROUPS = [
   id: "convert",
   label: "Konversi",
   blurb: "Ubah antar format tanpa kehilangan tampilan aslinya.",
-  color: "#6366F1",
-  colorBg: "color-mix(in srgb, #6366F1 14%, transparent)",
+  color: "var(--g-convert)",
+  colorBg: "color-mix(in srgb, var(--g-convert) 11%, transparent)",
   tools: [
     "word-to-pdf",
     "pdf-to-word",
     "excel-to-pdf",
+    "pdf-to-excel",
     "ppt-to-pdf",
+    "pdf-to-powerpoint",
+    "pdf-to-pdfa",
     "image-to-pdf",
     "pdf-to-image",
     "convert-image",
@@ -60,8 +64,8 @@ export const TOOL_GROUPS = [
     id: "organize",
     label: "Atur Halaman",
     blurb: "Gabung, pisah, dan susun ulang halaman sesukamu.",
-    color: "var(--coral)",
-    colorBg: "var(--coral-bg)",
+    color: "var(--g-organize)",
+    colorBg: "color-mix(in srgb, var(--g-organize) 11%, transparent)",
     tools: [
       "merge-pdf",
       "split-pdf",
@@ -76,8 +80,8 @@ export const TOOL_GROUPS = [
     id: "optimize",
     label: "Optimasi & Keamanan",
     blurb: "Perkecil ukuran file dan jaga dokumen tetap aman.",
-    color: "var(--success)",
-    colorBg: "var(--success-bg)",
+    color: "var(--g-optimize)",
+    colorBg: "color-mix(in srgb, var(--g-optimize) 11%, transparent)",
     tools: [
       "compress-pdf",
       "watermark-pdf",
@@ -94,24 +98,24 @@ export const TOOL_GROUPS = [
     id: "edit",
     label: "Edit & Perbaikan",
     blurb: "Sunting isi dan perbaiki dokumen yang bermasalah.",
-    color: "var(--sun)",
-    colorBg: "var(--sun-bg)",
+    color: "var(--g-edit)",
+    colorBg: "color-mix(in srgb, var(--g-edit) 11%, transparent)",
     tools: ["pdf-editor", "repair-pdf", "ocr-pdf", "pdf-to-txt", "fill-form"],
   },
 {
   id: "intelligence",
   label: "PDF Intelligence",
   blurb: "Pahami isi dokumen lebih cepat.",
-  color: "#06B6D4",
-  colorBg: "color-mix(in srgb, #06B6D4 14%, transparent)",
+  color: "var(--g-intel)",
+  colorBg: "color-mix(in srgb, var(--g-intel) 11%, transparent)",
   tools: ["pdf-to-markdown"],
 },
 {
   id: "video",
   label: "Video",
   blurb: "Kompres dan edit video langsung di browser, tanpa upload.",
-  color: "#EC4899",
-  colorBg: "color-mix(in srgb, #EC4899 14%, transparent)",
+  color: "var(--g-video)",
+  colorBg: "color-mix(in srgb, var(--g-video) 11%, transparent)",
   tools: [
     "compress-video",
     "edit-video",
@@ -125,7 +129,7 @@ export const TOOL_GROUPS = [
 },
 ];
 
-/** Look up a tool's group so UI can render it with that group's playful accent color. */
+/** Look up a tool's group so UI can render it with that group's muted accent colour. */
 export function groupOfTool(toolId) {
   return TOOL_GROUPS.find((g) => g.tools.includes(toolId));
 }
@@ -158,6 +162,15 @@ export const TOOLS = {
     accept: ".xlsx,.xls,.csv",
     accentTag: "XLSX",
   },
+  "pdf-to-excel": {
+    id: "pdf-to-excel",
+    name: "PDF ke Excel",
+    short: "PDF → Excel",
+    description: "Ekstrak tabel dari PDF menjadi spreadsheet .xlsx yang bisa diedit.",
+    icon: FileSpreadsheet,
+    accept: ".pdf",
+    accentTag: "XLSX",
+  },
   "ppt-to-pdf": {
     id: "ppt-to-pdf",
     name: "PowerPoint ke PDF",
@@ -166,6 +179,24 @@ export const TOOLS = {
     icon: Presentation,
     accept: ".pptx",
     accentTag: "PPTX",
+  },
+  "pdf-to-powerpoint": {
+    id: "pdf-to-powerpoint",
+    name: "PDF ke PowerPoint",
+    short: "PDF → PPT",
+    description: "Ubah setiap halaman PDF menjadi satu slide .pptx gambar.",
+    icon: Presentation,
+    accept: ".pdf",
+    accentTag: "PPTX",
+  },
+  "pdf-to-pdfa": {
+    id: "pdf-to-pdfa",
+    name: "PDF ke PDF/A",
+    short: "PDF → PDF/A",
+    description: "Konversi ke format arsip PDF/A untuk kebutuhan resmi/instansi.",
+    icon: Landmark,
+    accept: ".pdf",
+    accentTag: "PDF/A",
   },
   "image-to-pdf": {
     id: "image-to-pdf",

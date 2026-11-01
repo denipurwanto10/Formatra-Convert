@@ -25,15 +25,15 @@ export default function ResultCard({ title = "Berhasil diproses", files, onDownl
   const singlePreviewable = singleFile && isPreviewable(singleFile.blob);
 
   return (
-    <div className="animate-pop-in flex flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--success)]/25 bg-[var(--success-bg)] p-5">
+    <div className="animate-pop-in flex flex-col gap-4 rounded-[16px] border border-[color-mix(in_srgb,var(--success)_26%,transparent)] bg-[var(--success-bg)] p-5">
       {/* Status header — unambiguous success state, always the first thing seen */}
       <div className="flex items-center gap-3">
-        <div className="success-pop flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--success)]/15 text-[var(--success)] ring-1 ring-inset ring-[var(--success)]/10">
+        <div className="success-pop flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--success)_16%,transparent)] text-[var(--success)]">
           <CheckCircle2 className="size-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-ink">{title}</p>
-          <p className="text-[12px] text-muted">
+          <p className="text-[14.5px] font-medium tracking-[-0.01em] text-ink">{title}</p>
+          <p className="font-mono text-[11.5px] text-muted">
             {files.length} file &middot; {formatBytes(totalSize)}
           </p>
         </div>
@@ -48,9 +48,10 @@ export default function ResultCard({ title = "Berhasil diproses", files, onDownl
           {files.map((f, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 rounded-xl border-hair bg-surface px-3 py-2.5 shadow-soft"
+              style={{ "--i": Math.min(i, 8) }}
+              className="stagger-item flex items-center gap-3 rounded-xl border-hair bg-surface px-3 py-2.5"
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink">
                 <FileText className="size-4" />
               </div>
               <div className="min-w-0 flex-1">
@@ -72,12 +73,12 @@ export default function ResultCard({ title = "Berhasil diproses", files, onDownl
       )}
 
       {/* Primary CTA — the download action is the point of this card */}
-      <div className="mobile-action-bar flex flex-col gap-2 border-t border-[var(--success)]/20 pt-3.5 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="mobile-action-bar flex flex-col gap-2 border-t border-[color-mix(in_srgb,var(--success)_22%,transparent)] pt-3.5 sm:flex-row sm:flex-wrap sm:items-center">
         {isSingle ? (
           <Button
   size="lg"
   icon={Download}
-  className="w-full min-w-0 shadow-none hover:shadow-none sm:w-auto"
+  className="w-full min-w-0 sm:w-auto"
   onClick={() => downloadOne(singleFile)}
 >
   <span className="min-w-0 truncate">
@@ -86,7 +87,7 @@ export default function ResultCard({ title = "Berhasil diproses", files, onDownl
 </Button>
         ) : (
           onDownloadAll && (
-            <Button size="lg" icon={Download} className="w-full shadow-none hover:shadow-none sm:w-auto" onClick={onDownloadAll}>
+            <Button size="lg" icon={Download} className="w-full sm:w-auto" onClick={onDownloadAll}>
               Unduh semua (.zip)
             </Button>
           )
@@ -95,7 +96,7 @@ export default function ResultCard({ title = "Berhasil diproses", files, onDownl
           size="lg"
           variant="ghost"
           icon={RotateCcw}
-          className="w-full shadow-none hover:shadow-none sm:w-auto"
+          className="w-full sm:w-auto"
           onClick={onReset}
         >
           Proses file lain
@@ -120,7 +121,7 @@ function InlinePreview({ file, onExpand }) {
   const isVideo = file.blob.type.startsWith("video/");
 
   return (
-    <div className="group relative overflow-hidden rounded-[var(--radius-md)] border-hair bg-surface">
+    <div className="group relative overflow-hidden rounded-xl border-hair bg-surface">
       {isPdf ? (
         <PdfPreview file={file.blob} heightClass="h-64 sm:h-80" />
       ) : isVideo ? (
@@ -135,7 +136,7 @@ function InlinePreview({ file, onExpand }) {
       <button
         type="button"
         onClick={onExpand}
-        className="absolute right-5 top-2 flex min-h-9 max-w-[calc(100%-1rem)] items-center justify-center gap-1.5 rounded-md border border-accent bg-accent px-2.5 py-2 text-[11.5px] font-semibold leading-none text-white shadow-none transition-colors hover:bg-[var(--accent-strong)] sm:right-5 sm:top-3 sm:px-3"
+        className="absolute right-3 top-3 flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[color-mix(in_srgb,var(--ink)_82%,transparent)] px-3 text-[12px] font-medium leading-none text-[var(--bg)] backdrop-blur transition-colors duration-200 hover:bg-[var(--ink)]"
       >
         <Maximize2 className="size-3.5" />
         Perbesar

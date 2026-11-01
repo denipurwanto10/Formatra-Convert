@@ -34,7 +34,7 @@ function ScannedPdfBanner({ scannedPageCount, totalPages, onRunOcr, ocrState }) 
     <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-hair bg-[var(--warning-bg)] px-4 py-2.5 text-[12.5px] text-ink">
       <p className="leading-snug">
         {allScanned
-          ? "Dokumen ini tampaknya hasil pindai (scan) tanpa lapisan teks — \"Edit Teks Asli\" tidak akan menemukan teks apa pun sampai OCR dijalankan."
+          ? "Dokumen ini tampaknya hasil pindai (scan) tanpa lapisan teks — tool Teks tidak akan menemukan teks apa pun sampai OCR dijalankan."
           : `${scannedPageCount} dari ${totalPages} halaman tampaknya hasil pindai tanpa lapisan teks.`}
       </p>
       {ocrState.running ? (

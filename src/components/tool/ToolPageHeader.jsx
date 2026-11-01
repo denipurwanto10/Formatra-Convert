@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, LockKeyhole, Sparkles } from "lucide-react";
+import { ChevronRight, LockKeyhole } from "lucide-react";
 import { groupOfTool } from "../../lib/toolsMeta";
 
 export default function ToolPageHeader({ tool }) {
@@ -7,44 +7,39 @@ export default function ToolPageHeader({ tool }) {
   const group = groupOfTool(tool.id);
 
   return (
-    <header className="mb-8">
-      <nav className="mb-5 flex items-center gap-1.5 overflow-hidden text-[11px] font-semibold uppercase tracking-[0.08em] text-muted" aria-label="Breadcrumb">
+    <header className="mb-7 sm:mb-9">
+      <nav className="mb-5 flex items-center gap-1.5 overflow-hidden text-[12px] text-muted" aria-label="Breadcrumb">
         <Link to="/app" className="shrink-0 whitespace-nowrap transition-colors hover:text-ink">Semua alat</Link>
-        <ChevronRight className="size-3 shrink-0" />
-        <span className="shrink-0 whitespace-nowrap">{group?.label || "Tool"}</span>
-        <ChevronRight className="size-3 shrink-0" />
+        <ChevronRight className="size-3 shrink-0 text-[var(--border-strong)]" />
+        <span className="shrink-0 whitespace-nowrap">{group?.label || "Alat"}</span>
+        <ChevronRight className="size-3 shrink-0 text-[var(--border-strong)]" />
         <span className="min-w-0 truncate text-ink">{tool.name}</span>
       </nav>
 
       <div className="flex items-start gap-4">
         <div
-          className="flex size-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--tool-color)]/15 bg-[var(--tool-color-bg)] text-[var(--tool-color)] shadow-soft"
-          style={{ "--tool-color": group?.color ?? "var(--accent)", "--tool-color-bg": group?.colorBg ?? "color-mix(in srgb, var(--accent) 12%, transparent)" }}
+          className="flex size-12 shrink-0 items-center justify-center rounded-[13px] border-hair bg-surface text-[var(--tool-color)] sm:size-14"
+          style={{ "--tool-color": group?.color ?? "var(--ink)" }}
         >
-          <Icon className="size-6.5" />
+          <Icon className="size-[22px] sm:size-6" strokeWidth={1.6} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-[1.75rem] font-semibold leading-tight tracking-[-0.025em] text-ink sm:text-[2.05rem]">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="text-[1.6rem] font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-[2rem]">
               {tool.name}
             </h1>
             {tool.accentTag && (
-              <span className="rounded-full bg-surface-2 px-2.5 py-1 font-mono text-[10px] font-medium text-muted">
+              <span className="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-[10.5px] text-muted">
                 {tool.accentTag}
               </span>
             )}
           </div>
-          <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-muted sm:text-[14px]">
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-muted sm:text-[14.5px]">
             {tool.description}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border-hair bg-surface px-2.5 py-1 text-[11px] font-medium text-muted">
-              <LockKeyhole className="size-3 text-[var(--success)]" /> Diproses di perangkat
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border-hair bg-surface px-2.5 py-1 text-[11px] font-medium text-muted">
-              <Sparkles className="size-3 text-accent" /> Cepat
-            </span>
-          </div>
+          <p className="mt-3.5 inline-flex items-center gap-1.5 text-[12px] text-muted">
+            <LockKeyhole className="size-3 text-[var(--success)]" /> Diproses di perangkatmu, tidak diunggah
+          </p>
         </div>
       </div>
     </header>

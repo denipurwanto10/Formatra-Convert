@@ -497,8 +497,7 @@ function DefaultToolProps({ tool, options, onChange }) {
         </>
       )}
       <p className="text-[12px] leading-relaxed text-muted">
-        {tool === "editText" && "Klik tepat di atas teks asli di PDF untuk mengedit atau menghapusnya."}
-        {tool === "text" && "Klik di kanvas untuk menempatkan teks baru."}
+        {tool === "text" && "Klik teks yang sudah ada untuk mengeditnya seperti di Word, atau klik area kosong untuk teks baru."}
         {tool === "draw" && "Klik dan seret untuk menggambar bebas."}
         {tool === "highlight" && "Klik dan seret untuk menyorot area."}
         {tool === "rect" && "Klik dan seret untuk menggambar persegi."}

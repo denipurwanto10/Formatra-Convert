@@ -1,20 +1,25 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 const ToastContext = createContext(null);
+const EXIT_MS = 260;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const counter = useRef(0);
 
+  // Two-step dismiss: flag the toast as leaving so it can animate out, then drop it.
   const dismiss = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, EXIT_MS);
   }, []);
 
   const push = useCallback(
     ({ title, description, variant = "info", duration = 4200 }) => {
       counter.current += 1;
       const id = counter.current;
-      setToasts((prev) => [...prev, { id, title, description, variant }]);
+      setToasts((prev) => [...prev.slice(-3), { id, title, description, variant, leaving: false }]);
       if (duration) {
         setTimeout(() => dismiss(id), duration);
       }

@@ -17,21 +17,20 @@ export default function RecentActivity() {
   if (entries.length === 0) return null;
 
   return (
-    <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">
-          <History className="size-[15px] text-muted" />
-          Aktivitas Terbaru
+    <section className="reveal" aria-labelledby="recent-heading">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 id="recent-heading" className="text-[15px] font-medium tracking-[-0.015em] text-ink">
+          Aktivitas terbaru
         </h2>
         <button
           onClick={clearHistory}
-          className="flex items-center gap-1 text-[12px] text-muted hover:text-ink"
+          className="tap-target -mr-2 flex items-center gap-1.5 rounded-lg px-2 text-[12.5px] text-muted transition-colors hover:bg-surface-2 hover:text-ink"
         >
           <Trash2 className="size-3.5" />
           Hapus riwayat
         </button>
       </div>
-      <div className="flex flex-col divide-y divide-[var(--border)] rounded-2xl border-hair bg-surface">
+      <div className="flex flex-col divide-y divide-[var(--border)] overflow-hidden rounded-[14px] border-hair bg-surface">
         {entries.slice(0, 8).map((entry) => {
           const tool = TOOLS[entry.toolId];
           const Icon = tool?.icon;
@@ -39,16 +38,16 @@ export default function RecentActivity() {
             <Link
               key={entry.id}
               to={tool ? `/tools/${tool.id}` : "/app"}
-              className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-surface-2/60"
+              className="flex items-center gap-3 px-3.5 py-3 transition-colors duration-200 hover:bg-surface-2/70"
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
-                {Icon ? <Icon className="size-4" /> : <History className="size-4" />}
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-muted">
+                {Icon ? <Icon className="size-4" strokeWidth={1.7} /> : <History className="size-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] text-ink">{entry.fileName || "(tanpa nama)"}</p>
-                <p className="text-[11.5px] text-muted">{entry.toolName}</p>
+                <p className="truncate text-[13.5px] text-ink">{entry.fileName || "(tanpa nama)"}</p>
+                <p className="truncate text-[12px] text-muted">{entry.toolName}</p>
               </div>
-              <span className="shrink-0 text-[11px] text-muted">{formatRelativeTime(entry.timestamp)}</span>
+              <span className="shrink-0 font-mono text-[11.5px] text-muted">{formatRelativeTime(entry.timestamp)}</span>
             </Link>
           );
         })}

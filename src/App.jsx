@@ -9,7 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
 import ToastViewport from "./components/ui/ToastViewport";
-import Spinner from "./components/ui/Spinner";
+import Skeleton from "./components/ui/Skeleton";
 
 const Privacy = lazy(() => import("./pages/Privacy"));
 
@@ -24,7 +24,7 @@ export default function App() {
               <Route
                 path="/privacy"
                 element={
-                  <Suspense fallback={<div className="flex h-screen items-center justify-center"><Spinner /></div>}>
+                  <Suspense fallback={<div className="mx-auto max-w-2xl animate-fade-in space-y-4 px-5 pt-28"><Skeleton className="h-3 w-16" /><Skeleton className="h-10 w-48" /><Skeleton className="h-24 w-full" /></div>}>
                     <Privacy />
                   </Suspense>
                 }

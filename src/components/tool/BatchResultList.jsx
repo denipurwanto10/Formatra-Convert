@@ -24,7 +24,7 @@ const STATUS_ICON = {
 
 const STATUS_COLOR = {
   pending: "text-muted",
-  processing: "text-accent",
+  processing: "text-ink",
   done: "text-[var(--success)]",
   error: "text-[var(--danger)]",
 };
@@ -80,12 +80,13 @@ export default function BatchResultList({
       )}
 
       <div className="flex flex-col gap-1.5">
-        {items.map((it) => {
+        {items.map((it, idx) => {
           const Icon = STATUS_ICON[it.status];
           return (
             <div
               key={it.id}
-              className="flex items-center gap-3 rounded-md border-hair bg-surface px-3 py-2.5"
+              style={{ "--i": Math.min(idx, 10) }}
+              className="stagger-item flex items-center gap-3 rounded-xl border-hair bg-surface px-3 py-2.5 transition-colors duration-200 hover:border-[var(--border-strong)]"
             >
               <Icon
                 className={`size-4 shrink-0 ${STATUS_COLOR[it.status]} ${
@@ -124,7 +125,7 @@ export default function BatchResultList({
                   <button
                     onClick={() => onRemove(it.id)}
                     aria-label={`Hapus ${it.file.name}`}
-                    className="rounded p-1 text-muted hover:bg-surface-2 hover:text-ink"
+                    className="tap-target flex items-center justify-center rounded-lg p-1 text-muted transition-colors hover:bg-surface-2 hover:text-ink"
                   >
                     <X className="size-3.5" />
                   </button>

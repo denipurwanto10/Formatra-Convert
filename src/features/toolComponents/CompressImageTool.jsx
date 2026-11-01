@@ -28,15 +28,32 @@ export default function CompressImageTool() {
   const [format, setFormat] = useState("png");
   const [quality, setQuality] = useState(75);
   const [maxDimension, setMaxDimension] = useState(null);
+  const [targetSize, setTargetSize] = useState("");
+  const [useTargetSize, setUseTargetSize] = useState(false);
 
-  const options = { format, quality: quality / 100, maxDimension };
+  const options = { 
+    format, 
+    quality: quality / 100, 
+    maxDimension,
+    targetSizeMB: useTargetSize && targetSize ? parseFloat(targetSize) : null
+  };
+
   const process = (f, onProgress) => compressImage(f, { ...options, format: format || guessSourceFormat(f) }, onProgress);
 
   const { status, progress, result, error, run, reset, cancel } = useToolProcess(tool);
-  const batchProcess = useBatchProcess(process, tool);
+  
+  // For batch processing, use a consistent process function that includes all options
+  const batchProcess = useBatchProcess((f, onProgress) => 
+    compressImage(f, { 
+      ...options, 
+      format: format || guessSourceFormat(f) 
+    }, onProgress), tool);
   const toast = useToast();
 
-  const outputName = (f) => replaceExtension(f.name, extFromFormat(format));
+  // Per-file format: in batch mode files may have mixed source formats, and
+  // `format` state only reflects the first picked file — falling back per
+  // file keeps every download's extension matching its actual output.
+  const outputName = (f) => replaceExtension(f.name, extFromFormat(format || guessSourceFormat(f)));
 
   const handleReset = () => {
     reset();
@@ -88,40 +105,79 @@ export default function CompressImageTool() {
         </div>
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label={`Kualitas (${quality}%)`}>
-          <input
-            type="range"
-            min={10}
-            max={100}
-            step={5}
-            value={quality}
-            onChange={(e) => setQuality(Number(e.target.value))}
-            className="w-full accent-[var(--accent)]"
-          />
-          {format === "png" && (
-            <p className="text-[11.5px] text-muted">
-              Untuk PNG, kualitas lebih rendah mengurangi jumlah warna agar file lebih kecil.
-            </p>
-          )}
-        </Field>
-        <Field label="Ukuran maksimum">
-          <select
-            value={maxDimension ?? "original"}
-            onChange={(e) => {
-              const preset = MAX_DIMENSION_PRESETS.find((p) => p.id === e.target.value);
-              setMaxDimension(preset?.value ?? null);
-            }}
-            className="w-full rounded-md border-hair bg-base px-3 py-2 text-[13px] text-ink"
-          >
-            {MAX_DIMENSION_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="use-target-size"
+          checked={useTargetSize}
+          onChange={(e) => setUseTargetSize(e.target.checked)}
+          className="size-4 accent-[var(--accent)]"
+        />
+        <label htmlFor="use-target-size" className="text-[13px] font-medium text-ink">
+          Kompres hingga di bawah ukuran tertentu
+        </label>
       </div>
+
+      {useTargetSize ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Target ukuran maksimum (MB)">
+            <input
+              type="number"
+              min="0.1"
+              step="0.1"
+              value={targetSize}
+              onChange={(e) => setTargetSize(e.target.value)}
+              placeholder="Misal: 1.5"
+              className="w-full rounded-md border-hair bg-base px-3 py-2 text-[13px] text-ink"
+            />
+          </Field>
+          <div className="flex items-end">
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => setUseTargetSize(false)}
+              className="w-full"
+            >
+              Gunakan mode manual
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={`Kualitas (${quality}%)`}>
+            <input
+              type="range"
+              min={10}
+              max={100}
+              step={5}
+              value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
+              className="w-full accent-[var(--accent)]"
+            />
+            {format === "png" && (
+              <p className="text-[11.5px] text-muted">
+                Untuk PNG, kualitas lebih rendah mengurangi jumlah warna agar file lebih kecil.
+              </p>
+            )}
+          </Field>
+          <Field label="Ukuran maksimum">
+            <select
+              value={maxDimension ?? "original"}
+              onChange={(e) => {
+                const preset = MAX_DIMENSION_PRESETS.find((p) => p.id === e.target.value);
+                setMaxDimension(preset?.value ?? null);
+              }}
+              className="w-full rounded-md border-hair bg-base px-3 py-2 text-[13px] text-ink"
+            >
+              {MAX_DIMENSION_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      )}
     </div>
   );
 

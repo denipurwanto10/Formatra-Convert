@@ -55,11 +55,15 @@ export function useToolProcess(toolMeta) {
     setError(null);
   }, []);
 
-  /** User-initiated cancel: returns to idle immediately. */
+  /** User-initiated cancel: returns to idle immediately. Also clears any
+   * stale result — otherwise a previous run's output file would still be
+   * shown as downloadable even though the user just walked away from a
+   * newer, cancelled run. */
   const cancel = useCallback(() => {
     cancelledRef.current = true;
     setStatus("idle");
     setProgress(0);
+    setResult(null);
     setError(null);
   }, []);
 

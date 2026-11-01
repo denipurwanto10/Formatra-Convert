@@ -130,6 +130,60 @@ function buildCheckboxGroup(pointer, { color }) {
 }
 
 /**
+ * Word-style text hover cursor. While the Text tool (or Select, for
+ * double-click discovery) is active and the pointer is over live text or an
+ * original-PDF text line, show the I-beam cursor fabric itself uses inside
+ * an editing IText — otherwise restore the default. Synchronous hit-test
+ * only (cached line boxes + live objects), never async parsing, so it stays
+ * cheap enough to run on every mousemove.
+ */
+function updateTextHoverCursor(canvas, rawEvent) {
+  try {
+    const currentTool = useEditorStore.getState().tool;
+    if (currentTool !== "text" && currentTool !== "select") {
+      if (canvas.hoverCursor === "text") canvas.set({ hoverCursor: "move", defaultCursor: "default" });
+      return;
+    }
+    if (canvas.getActiveObject()?.isEditing) return;
+    const pointer = canvas.getScenePoint(rawEvent);
+    const PAD = 2.5;
+
+    const overLiveText = canvas.getObjects().some((o) => {
+      if (!(o.isTextEdit && (o.type === "IText" || o.type === "Textbox"))) return false;
+      if (o.visible === false) return false;
+      const r = o.getBoundingRect();
+      return (
+        pointer.x >= r.left - PAD &&
+        pointer.x <= r.left + r.width + PAD &&
+        pointer.y >= r.top - PAD &&
+        pointer.y <= r.top + r.height + PAD
+      );
+    });
+
+    let overOriginalLine = false;
+    if (!overLiveText) {
+      const pageId = useEditorStore.getState().activePageId;
+      const lines = pageTextCache.get(pageId)?.lines || [];
+      overOriginalLine = lines.some(
+        (l) =>
+          pointer.x >= l.left - PAD &&
+          pointer.x <= l.left + l.width + PAD &&
+          pointer.y >= l.top - PAD &&
+          pointer.y <= l.top + l.height + PAD
+      );
+    }
+
+    if (overLiveText || overOriginalLine) {
+      if (canvas.hoverCursor !== "text") canvas.set({ hoverCursor: "text", defaultCursor: "text" });
+    } else if (canvas.hoverCursor === "text") {
+      canvas.set({ hoverCursor: "move", defaultCursor: "default" });
+    }
+  } catch {
+    // Cursor hints must never break editing — fail silently to the default.
+  }
+}
+
+/**
  * Build an arrowhead Polygon pointing from (x1,y1) toward (x2,y2) and group
  * it with the shaft Line so the whole arrow moves/scales/exports as one
  * object — the same technique the properties panel's existing
@@ -184,6 +238,7 @@ export default function PdfCanvas({ pdfDoc }) {
   const setTool = useEditorStore((s) => s.setTool);
   const bumpSelection = useEditorStore((s) => s.bumpSelection);
   const originalFile = useEditorStore((s) => s.originalFile);
+  const searchHighlight = useEditorStore((s) => s.searchHighlight);
 
   const activePage = pages.find((p) => p.id === activePageId);
 
@@ -231,6 +286,7 @@ export default function PdfCanvas({ pdfDoc }) {
     const afterLoad = () => {
       if (disposed) return; // page was switched away before the saved JSON finished loading
       isLoadingRef.current = false;
+      linkTextMasks(canvas);
       canvas.renderAll();
     };
     if (savedJSON) {
@@ -262,7 +318,6 @@ export default function PdfCanvas({ pdfDoc }) {
       typingDebounce = setTimeout(() => commit(), 600);
     };
 
-    canvas.on("object:modified", onModified);
     canvas.on("object:added", onAdded);
     canvas.on("object:removed", onRemoved);
     canvas.on("selection:created", onSelection);
@@ -270,20 +325,34 @@ export default function PdfCanvas({ pdfDoc }) {
     canvas.on("selection:cleared", onSelection);
     canvas.on("path:created", () => commit());
     canvas.on("text:changed", onTextChanged);
-    canvas.on("object:moving", markDirty);
-    canvas.on("object:scaling", markDirty);
+    // Background masks are intentionally non-selectable, so when their text
+    // box is dragged/resized the mask has to be carried along here —
+    // otherwise the text visually detaches from its cover patch.
+    const onTextTransform = (e) => {
+      markDirty();
+      const target = e?.target;
+      if (!target || target.type === "ActiveSelection" || target.type === "Group") return;
+      syncMaskFollow(canvas, target);
+      syncMaskSize(canvas, target);
+    };
+    canvas.on("object:moving", onTextTransform);
+    canvas.on("object:scaling", onTextTransform);
+    canvas.on("object:modified", (e) => {
+      onModified();
+      const target = e?.target;
+      if (!target || target.type === "ActiveSelection" || target.type === "Group") return;
+      syncMaskFollow(canvas, target);
+      syncMaskSize(canvas, target);
+    });
     canvas.on("object:rotating", markDirty);
 
     // Shape drawing tools (rect/circle/line) via manual drag handlers
     /**
-     * Shared by both the "Tambah Teks" and "Edit Teks Asli" tools: if
+     * Shared by the unified "Teks" tool (and Select double-click): if
      * `pointer` lands on text that's already on the page — either an
      * original PDF line (from `pageTextCache`) or one already edited this
-     * session — open it for editing in place and return true. Both tools
-     * call this *first*, so which tool happens to be selected no longer
-     * matters for the one behaviour that should never change: clicking
-     * existing text edits it, exactly like iLovePDF, instead of ever
-     * stacking a new "Teks baru" box on top of it.
+     * session — open it for editing in place and return true, exactly like
+     * iLovePDF, instead of ever stacking a new "Teks baru" box on top of it.
      */
     const tryEditExistingTextAt = (pointer, rawEvent) => {
       // A couple of page-space points of tolerance around each line's tight
@@ -397,14 +466,13 @@ export default function PdfCanvas({ pdfDoc }) {
       const pointer = canvas.getScenePoint(opt.e);
 
       // "Pilih & Pindah" (select) is purely for selecting/moving objects —
-      // it must never open text editing on its own. Only "Tambah Teks" (as
-      // a courtesy redirect, see below) and "Edit Teks Asli" ever call
-      // tryEditExistingTextAt.
+      // it must never open text editing on its own single click (double
+      // click has its own handler below). Only the unified "Teks" tool calls
+      // tryEditExistingTextAt from here.
 
       if (currentTool === "text") {
         // Clicking existing text (original PDF text, or something already
-        // edited this session) with "Tambah Teks" active edits it in place
-        // — the same as "Edit Teks Asli" would — instead of dropping a new
+        // edited this session) edits it in place — instead of dropping a new
         // blank "Teks baru" box on top of it. Only truly empty space falls
         // through to actually adding a new text box below.
         if (tryEditExistingTextAt(pointer, opt.e)) {
@@ -437,7 +505,7 @@ export default function PdfCanvas({ pdfDoc }) {
         // Without this, text typed and then abandoned by clicking a page
         // thumbnail / switching tools (rather than clicking elsewhere on
         // the *same* canvas) never got committed — the whole block would
-        // silently vanish. Mirrors the commit-on-exit used by "editText".
+        // silently vanish. Mirrors the commit-on-exit used by the unified text edit flow.
         const onNewTextExit = () => {
           if (!textObj.text || textObj.text.trim() === "") {
             canvas.remove(textObj);
@@ -450,10 +518,14 @@ export default function PdfCanvas({ pdfDoc }) {
         return;
       }
 
+      // Legacy guard: no separate "editText" tool exists anymore — the
+      // unified "text" tool above handles original-PDF text. Kept so an
+      // older autosaved/cached tool value can never strand the canvas.
       if (currentTool === "editText") {
-        if (tryEditExistingTextAt(pointer, opt.e)) return; // stay in "editText" for the next click
-        // Clicked blank space, not any known text — that's the one way to
-        // step back out of Edit Text mode without using the toolbar.
+        if (tryEditExistingTextAt(pointer, opt.e)) {
+          setTool("text");
+          return;
+        }
         setTool("select");
         return;
       }
@@ -586,6 +658,11 @@ export default function PdfCanvas({ pdfDoc }) {
         return;
       }
       const drawing = drawingShapeRef.current;
+      // Word-style affordance: show an I-beam cursor when hovering text while
+      // a text-capable tool is active, so editability is discoverable before
+      // the click — plain arrow everywhere else. Skipped mid-drag / while an
+      // object is being moved so it never fights fabric's own cursors.
+      if (!drawing) updateTextHoverCursor(canvas, opt.e);
       if (!drawing) return;
       const pointer = canvas.getScenePoint(opt.e);
       const { shape, origin, type } = drawing;
@@ -648,6 +725,26 @@ export default function PdfCanvas({ pdfDoc }) {
     canvas.on("mouse:down", onMouseDown);
     canvas.on("mouse:move", onMouseMove);
     canvas.on("mouse:up", onMouseUp);
+    // iLovePDF/Word parity: double-clicking any text while in Select mode
+    // edits it directly, so discovering text editing never requires finding
+    // the toolbar's Text tool first. Single click keeps the classic
+    // select/move behaviour; only the double click dives into editing.
+    canvas.on("mouse:dblclick", (opt) => {
+      const currentTool = useEditorStore.getState().tool;
+      if (currentTool !== "select") return;
+      const target = opt.target;
+      const isLiveText =
+        target && (target.type === "IText" || target.type === "Textbox");
+      if (isLiveText) {
+        canvas.setActiveObject(target);
+        target.enterEditing();
+        target.selectAll();
+        canvas.requestRenderAll();
+        return;
+      }
+      const pointer = canvas.getScenePoint(opt.e);
+      tryEditExistingTextAt(pointer, opt.e);
+    });
 
     // Expose imperative API to toolbar / properties panel / Find & Replace
     handle.current.canvas = canvas;
@@ -658,7 +755,7 @@ export default function PdfCanvas({ pdfDoc }) {
     // that aren't the one currently on screen (the caller switches to them
     // first). Updates an existing edit for that line in place if there is
     // one, otherwise creates a new mask+text pair exactly like clicking it
-    // with the "Edit Teks Asli" tool would.
+    // with the unified "Teks" tool would.
     handle.current.applyLineEdit = (lineIndex, newText) => {
       const cache = pageTextCache.get(activePage.id);
       const hit = cache?.lines?.[lineIndex];
@@ -798,7 +895,7 @@ export default function PdfCanvas({ pdfDoc }) {
     // currently selected one) without disturbing the current selection. ---
     handle.current.getLayerObjects = () =>
       // Original-PDF text-edit masks/replacements aren't user-facing
-      // "layers" — they're an implementation detail of "Edit Teks Asli",
+      // "layers" — they're an implementation detail of editing original PDF text,
       // so the panel only lists things the user actually drew/placed.
       canvas.getObjects().filter((o) => !o.isTextEdit);
     handle.current.reorderLayerObject = (obj, direction) => {
@@ -1100,7 +1197,7 @@ export default function PdfCanvas({ pdfDoc }) {
   }, [activePage?.id, activePage?.kind, activePage?.sourceIndex, zoom, pdfDoc]);
 
   // Extract the original text runs' bounding boxes (and, best-effort, their
-  // real font/colour) once per source page, so the "Edit Teks Asli" tool can
+  // real font/colour) once per source page, so the unified "Teks" tool can
   // find the exact line under a click, and so it starts from the PDF's own
   // styling instead of a pixel-sampled guess. Shared across the whole editor
   // (see pageTextCache.js) so Find & Replace reuses the same data instead of
@@ -1138,7 +1235,7 @@ export default function PdfCanvas({ pdfDoc }) {
       const canvas = fabricRef.current;
       const store = useEditorStore.getState();
       if (!canvas || isLoadingRef.current || !store.activePageId) return;
-      store.commitCanvasState(store.activePageId, JSON.stringify(canvas.toJSON(["isTextEdit", "lineIndex", "isStickyNote", "name", "locked", "isFormField", "fieldType", "checked"])));
+      store.commitCanvasState(store.activePageId, JSON.stringify(canvas.toJSON(["isTextEdit", "lineIndex", "origLeft", "origTop", "isStickyNote", "name", "locked", "isFormField", "fieldType", "checked"])));
     };
 
     const onKeyDown = (e) => {
@@ -1174,6 +1271,27 @@ export default function PdfCanvas({ pdfDoc }) {
         e.preventDefault();
         handle.current.duplicateActive?.();
         return;
+      }
+      // Word-style formatting shortcuts on the selected (not mid-edit) text
+      // object: Ctrl+B/I/U toggle the style, Ctrl+E/L/R/J set alignment —
+      // the same muscle memory Word users bring to any document.
+      if (mod && (key === "b" || key === "i" || key === "u")) {
+        const obj = canvas.getActiveObject();
+        if (obj && (obj.type === "IText" || obj.type === "Textbox")) {
+          e.preventDefault();
+          handle.current.toggleTextStyle?.(key === "b" ? "bold" : key === "i" ? "italic" : "underline");
+          return;
+        }
+      }
+      if (mod && (key === "e" || key === "l" || key === "r" || key === "j")) {
+        const obj = canvas.getActiveObject();
+        if (obj && (obj.type === "IText" || obj.type === "Textbox")) {
+          e.preventDefault();
+          handle.current.setTextAlign?.(
+            key === "e" ? "center" : key === "r" ? "right" : key === "j" ? "justify" : "left"
+          );
+          return;
+        }
       }
       if (key === "escape") {
         if (handle.current.isCropping?.()) {
@@ -1276,7 +1394,6 @@ export default function PdfCanvas({ pdfDoc }) {
 
   const widthPx = Math.round(activePage.widthPt * zoom);
   const heightPx = Math.round(activePage.heightPt * zoom);
-  const searchHighlight = useEditorStore((s) => s.searchHighlight);
   const showSearchHighlight = searchHighlight && searchHighlight.pageId === activePage.id;
 
   return (
@@ -1305,6 +1422,85 @@ export default function PdfCanvas({ pdfDoc }) {
       )}
     </div>
   );
+}
+
+/**
+ * Recompute each background mask's offset relative to its text box. Needed
+ * after every JSON load (page switch / undo / autosave restore) because the
+ * follow offsets are runtime-only (`_`-prefixed, never serialized) — without
+ * this a reloaded page's masks would stop following their text.
+ */
+function linkTextMasks(canvas) {
+  try {
+    const objects = canvas.getObjects();
+    objects
+      .filter((o) => o.isTextEdit && o.type === "Rect")
+      .forEach((mask) => {
+        const text = objects.find(
+          (o) =>
+            o !== mask &&
+            o.isTextEdit &&
+            o.lineIndex === mask.lineIndex &&
+            (o.type === "IText" || o.type === "Textbox")
+        );
+        if (!text) return;
+        mask._followDX = mask.left - text.left;
+        mask._followDY = mask.top - text.top;
+      });
+  } catch {
+    // Mask linking is a pure convenience — never break page load over it.
+  }
+}
+
+/**
+ * Move a text box's background mask along with it. The mask deliberately
+ * stays non-selectable (so clicks always land on the text itself), which is
+ * why the follow has to happen here instead of via normal dragging.
+ * Multi-object drags (ActiveSelection/Group) are skipped on purpose: member
+ * coordinates are group-relative mid-drag, so "following" them would
+ * misplace the mask — the mask then stays covering the original line, which
+ * is the safe behaviour and still matches the exported PDF.
+ */
+function syncMaskFollow(canvas, target) {
+  try {
+    if (!target?.isTextEdit || !(target.type === "IText" || target.type === "Textbox")) return;
+    const mask = canvas
+      .getObjects()
+      .find((o) => o !== target && o.isTextEdit && o.type === "Rect" && o.lineIndex === target.lineIndex);
+    if (!mask) return;
+    if (mask._followDX == null || mask._followDY == null) {
+      mask._followDX = mask.left - target.left;
+      mask._followDY = mask.top - target.top;
+    }
+    mask.set({ left: (target.left ?? 0) + mask._followDX, top: (target.top ?? 0) + mask._followDY });
+    mask.setCoords();
+  } catch {
+    // Cursor/follow hints must never break editing.
+  }
+}
+
+/**
+ * Grow a text box's background mask (never shrink it) so it keeps fully
+ * covering the text after a resize/scale. Grow-only matters: shrinking it to
+ * a now-smaller box would uncover original glyphs around it on screen.
+ */
+function syncMaskSize(canvas, target) {
+  try {
+    if (!target?.isTextEdit || !(target.type === "IText" || target.type === "Textbox")) return;
+    const mask = canvas
+      .getObjects()
+      .find((o) => o !== target && o.isTextEdit && o.type === "Rect" && o.lineIndex === target.lineIndex);
+    if (!mask) return;
+    const r = target.getBoundingRect();
+    const w = Math.max(mask.width || 0, r.width + 2);
+    const h = Math.max(mask.height || 0, r.height + 2);
+    if (w !== mask.width || h !== mask.height) {
+      mask.set({ width: w, height: h });
+      mask.setCoords();
+    }
+  } catch {
+    // Size sync is best-effort only.
+  }
 }
 
 /**
@@ -1343,6 +1539,12 @@ function createLineEditObjects({
     lineIndex,
   });
   canvas.add(mask);
+  // Follow offset (page points) from the text box's top-left to the mask's
+  // top-left, seeded at creation since mask and text start out aligned. The
+  // mask itself must stay non-selectable (so clicks always land on the text),
+  // so the actual move happens in syncMaskFollow(), not by direct dragging.
+  mask._followDX = -1;
+  mask._followDY = -1;
 
   let textObj = null;
   if (!skipText) {
